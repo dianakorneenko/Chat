@@ -18,13 +18,15 @@ namespace ChatClient
         private byte[] iv;
         private NetworkStream stream;
         private TcpClient client;
+        string usernameB;
 
-        public Chat(byte[] key, byte[] iv, NetworkStream stream, TcpClient client)
+        public Chat(NetworkStream stream, TcpClient client, byte[] key, byte[] iv, string usernameB)
         {
             this.key = key;
             this.iv = iv;
             this.stream = stream;
             this.client = client;
+            this.usernameB = usernameB;
         }
 
         public void ReceiveMessage()
@@ -33,43 +35,59 @@ namespace ChatClient
             {
                 try
                 {
-                    byte[] data = new byte[64]; // буфер для получаемых данных
                     string message;
-                    StringBuilder builder = new StringBuilder();
-                    int bytes = 0;
+                    
+                    BinaryReader reader = new BinaryReader(stream);
                     do
                     {
-                        bytes = stream.Read(data, 0, data.Length);
-                        //Encoding.Unicode.GetBytes(message)
-                        builder.Append(Encoding.Unicode.GetString(data, 0, bytes));
+                        string data = reader.ReadString();
+                        byte[] dataBytes = Encoding.Default.GetBytes(data);
 
-                        //message =  DecryptStringFromBytes(data, key, iv);
+                        message = Decrypt(dataBytes, key, iv);
                     }
                     while (stream.DataAvailable);
 
-                    //Console.WriteLine(message);
-                    Console.WriteLine(builder.ToString()); // вывод сообщения
+                    Console.WriteLine("{0}: {1}", usernameB, message);//вывод сообщения
                 }
-                catch
+                catch (Exception exp)
                 {
+                    Console.WriteLine(exp.Message);
                     Console.WriteLine("Подключение прервано!"); //соединение было прервано
-                    Console.ReadLine();
                     Disconnect();
                 }
             }
         }
 
-        //public void SendMessage()
-        //{
-        //    Console.WriteLine("Введите сообщение: ");
-
-        //    while (true)
-        //    {
-        //        string message = Console.ReadLine();
-        //        byte[] data = EncryptStringToBytes(message, key, iv);
-        //        stream.Write(data, 0, data.Length);
-        //    }
-        //}
+        public string Decrypt(byte[] cipherText, byte[] Key, byte[] IV)
+        {
+            string plaintext = null;
+            // Create AesManaged    
+            using (AesManaged aes = new AesManaged())
+            {
+                // Create a decryptor    
+                ICryptoTransform decryptor = aes.CreateDecryptor(Key, IV);
+                // Create the streams used for decryption.    
+                using (MemoryStream ms = new MemoryStream(cipherText))
+                {
+                    // Create crypto stream    
+                    using (CryptoStream cs = new CryptoStream(ms, decryptor, CryptoStreamMode.Read))
+                    {
+                        // Read crypto stream    
+                        using (StreamReader reader = new StreamReader(cs))
+                            plaintext = reader.ReadToEnd();
+                    }
+                }
+            }
+            return plaintext;
+        }
+        void Disconnect()
+        {
+            if (stream != null)
+                stream.Close();//отключение потока
+            if (client != null)
+                client.Close();//отключение клиента
+            Environment.Exit(0); //завершение процесса
+        }
 
         static byte[] EncryptStringToBytes(string plainText, byte[] Key, byte[] IV)
         {
@@ -109,7 +127,6 @@ namespace ChatClient
             // Return the encrypted bytes from the memory stream. 
             return encrypted;
         }
-
         static string DecryptStringFromBytes(byte[] cipherText, byte[] Key, byte[] IV)
         {
             // Check arguments. 
@@ -150,15 +167,6 @@ namespace ChatClient
                 }
             }
             return plaintext;
-        }
-
-        void Disconnect()
-        {
-            if (stream != null)
-                stream.Close();//отключение потока
-            if (client != null)
-                client.Close();//отключение клиента
-            Environment.Exit(0); //завершение процесса
         }
     }
 }

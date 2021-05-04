@@ -83,23 +83,31 @@ namespace ChatClient
                 //Console.ReadLine();
                 //...........................................................
                 #endregion
-                
+
+                //Console.Write("Введите свое имя: ");
+                //userName = Console.ReadLine();
+
+                // отправляем имя пользователя на сервер
+                //writer.Write(userName);
+
                 Console.Write("Введите свое имя: ");
+
                 userName = Console.ReadLine();
 
                 // отправляем имя пользователя на сервер
-                //BinaryWriter writer = new BinaryWriter(stream);
                 writer.Write(userName);
 
                 // генерируем ключ A
                 BigInteger A = BigInteger.ModPow(g, random, p);
                 Console.WriteLine("A: {0}", A.ToString());
                 
-                // отправляем метку для старта
+                // получаем метку для старта
                 string go = reader.ReadString();
                 
                 Console.WriteLine("go: {0}", go);
+
                 
+
                 // отправляем ключ А на сервер
                 writer.Write(A.ToString());
                 //writer.Flush();
@@ -112,32 +120,23 @@ namespace ChatClient
                 // вычисляем секретный общий ключ K
                 BigInteger K = BigInteger.ModPow(B, random, p);
 
+                string usernameB = reader.ReadString();
 
                 // генерируем ключ и вектор для AES256 
                 List<byte[]> keyAndIE = GenerateAES_KeyAndIV_Bytes(K);
-                //AESKeyData keyData;
-                //AES aes = new AES();
-                //keyData = aes.GenerateKeyDataFromNonces(pByte, gByte);
                 
-                //byte[] key = keyAndIE[0];
-                //byte[] iv = keyAndIE[1];
-
-                //byte[] encryptText = EncryptStringToBytes("hello", key, iv);
-                //string text = DecryptStringFromBytes(encryptText, key, iv);
-                //Console.WriteLine("decryptText: {0}", text);
-
-                //reader.Close();
-                //writer.Close();
+                byte[] key = keyAndIE[0];
+                byte[] iv = keyAndIE[1];
 
                 // начало чата
                 // создаем объект чата для получения и передачи зашифрованных сообщений
-                //Chat chat = new Chat(key, iv, stream, client);
+                Chat chat = new Chat(stream, client, key, iv, usernameB);
 
                 // запускаем новый поток для получения данных
-                Thread receiveThread = new Thread(new ThreadStart(ReceiveMessage));
+                Thread receiveThread = new Thread(new ThreadStart(chat.ReceiveMessage));
                 receiveThread.Start(); //старт потока     
                 Console.WriteLine("Добро пожаловать, {0}", userName);
-                SendMessage();
+                SendMessage(stream, key, iv);
             }
             catch (Exception ex)
             {
@@ -160,7 +159,7 @@ namespace ChatClient
                     // Encrypt string    
                     byte[] encrypted = Encrypt(raw, aes.Key, aes.IV);
                     // Print encrypted string    
-                    Console.WriteLine($"Encrypted data: {System.Text.Encoding.Unicode.GetString(encrypted)}");
+                    Console.WriteLine($"Encrypted data: {System.Text.Encoding.Default.GetString(encrypted)}");
                     // Decrypt the bytes to a string.    
                     string decrypted = Decrypt(encrypted, aes.Key, aes.IV);
                     // Print decrypted string. It should be same as raw data    
@@ -222,100 +221,79 @@ namespace ChatClient
             return plaintext;
         }
 
-        static void SendMessage()
+        static void SendMessage(NetworkStream stream, byte[] key, byte[] iv)
         {
             Console.WriteLine("Введите сообщение: ");
+
             BinaryWriter writer = new BinaryWriter(stream);
-
-            AesManaged aes = new AesManaged();
-
-            string hexString = "1234567891234567234567123456781234567823456781234567234578234573";
-            var bytes = new byte[hexString.Length / 2];
-            for (var i = 0; i < 17; i++)
-            {
-                bytes[i] = Convert.ToByte(hexString.Substring(i * 2, 2), 16);
-            }
-
-            byte[] key = bytes;
-
-            hexString = "1234567891234567234567123456781234567823456781234567234578234573";
-            bytes = new byte[hexString.Length / 4];
-            for (var i = 0; i < 9; i++)
-            {
-                bytes[i] = Convert.ToByte(hexString.Substring(i * 2, 2), 16);
-            }
-
-            byte[] iv = bytes;
+            
             while (true)
             {
                 string message = Console.ReadLine();
-                byte[] data = Encoding.Unicode.GetBytes(message);
-                //byte[] data = Encrypt(message, key, iv);
-                //writer.Write(data);
-                //data = Encoding.Unicode.GetBytes(System.Text.Encoding.Unicode.GetString(data));
-                //data = aes.EncryptAES(keyData, data);
-                stream.Write(data, 0, data.Length);
+                byte[] data = Encrypt(message, key, iv);
+                message = System.Text.Encoding.Default.GetString(data);
+                writer.Write(message);
             }
         }
 
-        static void ReceiveMessage()
-        {
-            while (true)
-            {
-                try
-                {
-                    byte[] data = new byte[64]; // буфер для получаемых данных
-                    //string message;
-                    StringBuilder builder = new StringBuilder();
-                    int bytes1 = 0;
-                    AesManaged aes = new AesManaged();
-                    string hexString = "1234567891234567234567123456781234567823456781234567234578234573";
-                    var bytes = new byte[hexString.Length / 2];
-                    for (var i = 0; i < 17; i++)
-                    {
-                        bytes[i] = Convert.ToByte(hexString.Substring(i * 2, 2), 16);
-                    }
+        //static void ReceiveMessage(NetworkStream stream)
+        //{
+        //    while (true)
+        //    {
+        //        try
+        //        {
+        //            byte[] data = new byte[64]; // буфер для получаемых данных
+        //            //string message;
+        //            StringBuilder builder = new StringBuilder();
+        //            int bytes1 = 0;
+        //            AesManaged aes = new AesManaged();
+        //            string hexString = "1234567891234567234567123456781234567823456781234567234578234573";
+        //            var bytes = new byte[hexString.Length / 2];
+        //            for (var i = 0; i < 17; i++)
+        //            {
+        //                bytes[i] = Convert.ToByte(hexString.Substring(i * 2, 2), 16);
+        //            }
 
-                    byte[] key = bytes;
+        //            byte[] key = bytes;
 
-                    hexString = "1234567891234567234567123456781234567823456781234567234578234573";
-                    bytes = new byte[hexString.Length / 4];
-                    for (var i = 0; i < 9; i++)
-                    {
-                        bytes[i] = Convert.ToByte(hexString.Substring(i * 2, 2), 16);
-                    }
+        //            hexString = "1234567891234567234567123456781234567823456781234567234578234573";
+        //            bytes = new byte[hexString.Length / 4];
+        //            for (var i = 0; i < 9; i++)
+        //            {
+        //                bytes[i] = Convert.ToByte(hexString.Substring(i * 2, 2), 16);
+        //            }
 
-                    byte[] iv = bytes;
-                    //BinaryReader reader = new BinaryReader(stream);
-                    do
-                    {
-                        //byte[] pByte = reader.ReadBytes(32);
+        //            byte[] iv = bytes;
+        //            BinaryReader reader = new BinaryReader(stream);
+        //            do
+        //            {
+        //                //byte[] pByte = reader.ReadBytes(32);
                         
-                        bytes1 = stream.Read(data, 0, data.Length);
-                        //Encoding.Unicode.GetBytes(message)
-                        builder.Append(Encoding.Unicode.GetString(data, 0, bytes1));
+        //                bytes1 = stream.Read(data, 0, data.Length);
+        //                //Encoding.Unicode.GetBytes(message)
+        //                builder.Append(Encoding.Default.GetString(data, 0, bytes1));
 
-                        //string decrypted = Decrypt(pByte, aes.Key, aes.IV);
+        //                //string decrypted = Decrypt(pByte, aes.Key, aes.IV);
 
-                        //message =  DecryptStringFromBytes(data, key, iv);
-                    }
-                    while (stream.DataAvailable);
+        //                //message =  DecryptStringFromBytes(data, key, iv);
+        //            }
+        //            while (stream.DataAvailable);
 
-                    string message = builder.ToString();
-                    //message = message.Replace($"\0", "");
-                    //byte[] mesBytes = Encoding.Unicode.GetBytes(message);
-                    //message = Decrypt(mesBytes, key, iv);
-                    Console.WriteLine(message);//вывод сообщения
-                }
-                catch (Exception exp)
-                {
-                    Console.WriteLine(exp.Message);
-                    Console.WriteLine("Подключение прервано!"); //соединение было прервано
-                    Console.ReadLine();
-                    Disconnect();
-                }
-            }
-        }
+        //            string message = builder.ToString();
+        //            message = message.Replace($"\0", "");
+        //            byte[] mesBytes = Encoding.Default.GetBytes(message);
+        //            message = Decrypt(mesBytes, key, iv);
+        //            Console.WriteLine(message);//вывод сообщения
+        //        }
+        //        catch (Exception exp)
+        //        {
+        //            Console.WriteLine(exp.Message);
+        //            Console.WriteLine("Подключение прервано!"); //соединение было прервано
+        //            Console.ReadLine();
+        //            Disconnect();
+        //        }
+        //    }
+        //}
 
         static byte[] EncryptStringToBytes(string plainText, byte[] Key, byte[] IV)
         {
@@ -416,7 +394,7 @@ namespace ChatClient
 
         public static byte[] getHashSha256(string text)
         {
-            byte[] bytes = Encoding.Unicode.GetBytes(text);
+            byte[] bytes = Encoding.Default.GetBytes(text);
             SHA256Managed hashstring = new SHA256Managed();
             byte[] hash = hashstring.ComputeHash(bytes);
             //string hashString = string.Empty;

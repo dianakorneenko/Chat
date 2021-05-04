@@ -40,25 +40,31 @@ namespace ChatServer
                 Console.WriteLine("Сервер запущен. Ожидание подключений...");
                 TcpClient tcpClient;
                 ClientObject clientObject;
-
+                int i = 0;
+                List<string> usernames = new List<string>();
                 while (true)
                 {
                     tcpClient = tcpListener.AcceptTcpClient();
                     clientObject = new ClientObject(tcpClient, this);
-
-                    clientObject.KeyGen();
+                    usernames.Add(clientObject.KeyGen());
                     Console.WriteLine("ждем подключения второго пользователя");
                     if (clients.Count > 1)
                         break;
                 }
-                
+
+                //string usernameA = clients[0].GetUsername();
+                //string usernameB = clients[1].GetUsername();
                 Console.WriteLine("пользователи подключились");
 
                 string A = clients[0].GetA();
                 string B = clients[1].GetA();
 
+
                 this.BroadcastMessage(A, clients[0].Id);
                 this.BroadcastMessage(B, clients[1].Id);
+
+                this.BroadcastMessage(usernames[0], clients[0].Id);
+                this.BroadcastMessage(usernames[1], clients[1].Id);
 
                 Thread clientThread1 = new Thread(new ThreadStart(clients[0].Process));
                 clientThread1.Start();
@@ -91,8 +97,7 @@ namespace ChatServer
         // трансляция сообщения подключенным клиентам
         protected internal void BroadcastMessage(string message, string id)
         {
-            
-            byte[] data = Encoding.Unicode.GetBytes(message);
+            byte[] data = Encoding.Default.GetBytes(message);
             for (int i = 0; i < clients.Count; i++)
             {
                 BinaryWriter writer = new BinaryWriter(clients[i].Stream);

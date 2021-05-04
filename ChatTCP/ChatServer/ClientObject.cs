@@ -37,7 +37,7 @@ namespace ChatServer
             serverObject.AddConnection(this);
         }
 
-        public void KeyGen()
+        public string KeyGen()
         {
             try
             {
@@ -64,10 +64,12 @@ namespace ChatServer
                 //BinaryReader reader = new BinaryReader(Stream);
                 userName = reader.ReadString();
                 Console.WriteLine(userName);
+                return userName;
             }
             catch (Exception e)
             {
                 Console.WriteLine(e.Message);
+                return e.Message;
             }
             finally
             {
@@ -107,24 +109,29 @@ namespace ChatServer
             }
         }
 
+        //public string GetUsername()
+        //{
+        //    BinaryReader reader = new BinaryReader(Stream);
+        //    string username = reader.ReadString();
+        //    return username;
+        //}
+
         public void Process()
         {
             try
             {
                 Console.WriteLine("начался метод Process");
 
-
-                byte[] messageByte;
                 string message;
                 Console.WriteLine("Бесконечный цикл чата");
                 while (true)
                 {
                     try
                     {
-                        messageByte = GetMessageFromChat();
+                        message = GetMessageFromChat();
                         //message = String.Format("{0}: {1}", userName, message);
                         //Console.WriteLine(message);
-                        server.BroadcastMessage(messageByte, this.Id);
+                        server.BroadcastMessage(message, this.Id);
                     }
                     catch
                     {
@@ -156,7 +163,7 @@ namespace ChatServer
             do
             {
                 bytes = Stream.Read(data, 0, data.Length);
-                builder.Append(Encoding.Unicode.GetString(data, 0, bytes));
+                builder.Append(Encoding.Default.GetString(data, 0, bytes));
             }
             while (Stream.DataAvailable);
 
@@ -164,17 +171,17 @@ namespace ChatServer
         }
 
         // чтение входящего сообщения из чата
-        private byte[] GetMessageFromChat()
+        private string GetMessageFromChat()
         {
-            byte[] data = new byte[64]; // буфер для получаемых данных
-            int bytes = 0;
+            string message;
+            BinaryReader reader = new BinaryReader(Stream);
             do
             {
-                bytes = Stream.Read(data, 0, data.Length);
+                message = reader.ReadString();
             }
             while (Stream.DataAvailable);
 
-            return data;
+            return message;
         }
 
         // закрытие подключения

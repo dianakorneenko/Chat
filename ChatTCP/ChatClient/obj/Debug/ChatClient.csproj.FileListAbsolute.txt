@@ -14,4 +14,3 @@ C:\ChatTCP\Chat\ChatTCP\ChatClient\obj\Debug\ChatClient.pdb
 C:\ChatTCP\Chat\ChatTCP\ChatClient\bin\Debug\TeleSharp.TL.dll
 C:\ChatTCP\Chat\ChatTCP\ChatClient\bin\Debug\TLSharp.Core.dll
 C:\ChatTCP\Chat\ChatTCP\ChatClient\obj\Debug\ChatClient.csproj.CopyComplete
-C:\ChatTCP\Chat\ChatTCP\ChatClient\obj\Debug\ChatClient.csprojAssemblyReference.cache
