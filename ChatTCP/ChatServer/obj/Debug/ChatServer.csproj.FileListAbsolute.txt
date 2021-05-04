@@ -5,3 +5,9 @@ D:\КУРС\ChatTCP\ChatTCP\ChatServer\obj\Debug\ChatServer.csproj.CoreCompileIn
 D:\КУРС\ChatTCP\ChatTCP\ChatServer\obj\Debug\ChatServer.exe
 D:\КУРС\ChatTCP\ChatTCP\ChatServer\obj\Debug\ChatServer.pdb
 D:\КУРС\ChatTCP\ChatTCP\ChatServer\obj\Debug\ChatServer.csprojAssemblyReference.cache
+C:\ChatTCP\Chat\ChatTCP\ChatServer\bin\Debug\ChatServer.exe.config
+C:\ChatTCP\Chat\ChatTCP\ChatServer\bin\Debug\ChatServer.exe
+C:\ChatTCP\Chat\ChatTCP\ChatServer\bin\Debug\ChatServer.pdb
+C:\ChatTCP\Chat\ChatTCP\ChatServer\obj\Debug\ChatServer.csproj.CoreCompileInputs.cache
+C:\ChatTCP\Chat\ChatTCP\ChatServer\obj\Debug\ChatServer.exe
+C:\ChatTCP\Chat\ChatTCP\ChatServer\obj\Debug\ChatServer.pdb

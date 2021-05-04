@@ -5,3 +5,13 @@ D:\КУРС\ChatTCP\ChatTCP\ChatClient\obj\Debug\ChatClient.csproj.CoreCompileIn
 D:\КУРС\ChatTCP\ChatTCP\ChatClient\obj\Debug\ChatClient.exe
 D:\КУРС\ChatTCP\ChatTCP\ChatClient\obj\Debug\ChatClient.pdb
 D:\КУРС\ChatTCP\ChatTCP\ChatClient\obj\Debug\ChatClient.csprojAssemblyReference.cache
+C:\ChatTCP\Chat\ChatTCP\ChatClient\bin\Debug\ChatClient.exe.config
+C:\ChatTCP\Chat\ChatTCP\ChatClient\bin\Debug\ChatClient.exe
+C:\ChatTCP\Chat\ChatTCP\ChatClient\bin\Debug\ChatClient.pdb
+C:\ChatTCP\Chat\ChatTCP\ChatClient\obj\Debug\ChatClient.csproj.CoreCompileInputs.cache
+C:\ChatTCP\Chat\ChatTCP\ChatClient\obj\Debug\ChatClient.exe
+C:\ChatTCP\Chat\ChatTCP\ChatClient\obj\Debug\ChatClient.pdb
+C:\ChatTCP\Chat\ChatTCP\ChatClient\bin\Debug\TeleSharp.TL.dll
+C:\ChatTCP\Chat\ChatTCP\ChatClient\bin\Debug\TLSharp.Core.dll
+C:\ChatTCP\Chat\ChatTCP\ChatClient\obj\Debug\ChatClient.csproj.CopyComplete
+C:\ChatTCP\Chat\ChatTCP\ChatClient\obj\Debug\ChatClient.csprojAssemblyReference.cache

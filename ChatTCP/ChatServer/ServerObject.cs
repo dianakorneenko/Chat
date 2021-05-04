@@ -54,8 +54,8 @@ namespace ChatServer
                 
                 Console.WriteLine("пользователи подключились");
 
-                byte[] A = clients[0].GetA();
-                byte[] B = clients[1].GetA();
+                string A = clients[0].GetA();
+                string B = clients[1].GetA();
 
                 this.BroadcastMessage(A, clients[0].Id);
                 this.BroadcastMessage(B, clients[1].Id);
@@ -77,7 +77,7 @@ namespace ChatServer
         // трансляция A подключенным клиентам
         protected internal void BroadcastMessage(byte[] message, string id)
         {
-            
+
             for (int i = 0; i < clients.Count; i++)
             {
                 if (clients[i].Id != id) // если id клиента не равно id отправляющего
@@ -91,12 +91,15 @@ namespace ChatServer
         // трансляция сообщения подключенным клиентам
         protected internal void BroadcastMessage(string message, string id)
         {
+            
             byte[] data = Encoding.Unicode.GetBytes(message);
             for (int i = 0; i < clients.Count; i++)
             {
+                BinaryWriter writer = new BinaryWriter(clients[i].Stream);
                 if (clients[i].Id != id) // если id клиента не равно id отправляющего
                 {
-                    clients[i].Stream.Write(data, 0, data.Length); //передача данных
+                    writer.Write(message);
+                    //clients[i].Stream.Write(data, 0, data.Length); //передача данных
                 }
             }
         }
