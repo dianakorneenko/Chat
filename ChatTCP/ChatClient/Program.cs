@@ -47,6 +47,12 @@ namespace ChatClient
                 BigInteger g = BigInteger.Parse(gString);
                 Console.WriteLine("g: {0}", g);
 
+                // проверка p и g
+                bool gCorrect = CheakG(p, g);
+                Console.WriteLine("g correct? - {0}", gCorrect.ToString());
+                bool gcorrect = CheakBetween(g, p);
+                Console.WriteLine("g correct? - {0}", gcorrect.ToString());
+
                 #region AES256
                 //................................................................
                 //Console.WriteLine("Enter text that needs to be encrypted..");
@@ -117,13 +123,27 @@ namespace ChatClient
                 BigInteger B = BigInteger.Parse(BString);
                 Console.WriteLine("B: {0}", B);
 
+                bool Bcorrect = CheakBetween(B, p);
+                Console.WriteLine("B correct? - {0}", Bcorrect.ToString());
+
                 // вычисляем секретный общий ключ K
-                BigInteger K = BigInteger.ModPow(B, random, p);
+                BigInteger numberK = BigInteger.ModPow(B, random, p);
+                Console.WriteLine("K: {0}", numberK);
+                byte[] K = numberK.ToByteArray();
+                //using (MemoryStream plaintextBuffer = new MemoryStream(K.Length + 40))
+                //{
+                //    plaintextBuffer.Write(K, 0, K.Length);
+                //    while (plaintextBuffer.Position % 256 != 0)
+                //    {
+                //        plaintextBuffer.WriteByte(0); // TODO: random padding
+                //    }
+                //    K = plaintextBuffer.ToArray();
+                //}
 
                 string usernameB = reader.ReadString();
 
                 // генерируем ключ и вектор для AES256 
-                List<byte[]> keyAndIE = GenerateAES_KeyAndIV_Bytes(K);
+                List<byte[]> keyAndIE = GenerateAES_KeyAndIV_Bytes(K, "plaintext");
                 
                 byte[] key = keyAndIE[0];
                 byte[] iv = keyAndIE[1];
@@ -136,7 +156,7 @@ namespace ChatClient
                 Thread receiveThread = new Thread(new ThreadStart(chat.ReceiveMessage));
                 receiveThread.Start(); //старт потока     
                 Console.WriteLine("Добро пожаловать, {0}", userName);
-                SendMessage(stream, key, iv);
+                chat.SendMessage();
             }
             catch (Exception ex)
             {
@@ -145,6 +165,34 @@ namespace ChatClient
             finally
             {
                 Disconnect();
+            }
+        }
+
+        static bool CheakBetween(BigInteger num, BigInteger p)
+        {
+            BigInteger limit = new BigInteger(2 ^ (2048 - 64));
+            return num > 1 || num < p - 1 || num > limit || num < p - limit;
+        }
+
+        static bool CheakG(BigInteger p, BigInteger G)
+        {
+            int g = Convert.ToInt32(G.ToString());
+            switch (g)
+            {
+                case 2:
+                    return p % 8 == 7;
+                case 3:
+                    return p % 3 == 2;
+                case 5:
+                    return (p % 5 == 1) || (p % 5 == 4);
+                case 6:
+                    return (p % 24 == 19) || (p % 24 == 23);
+                case 7:
+                    return (p % 7 == 3) || (p % 7 == 5) || (p % 7 == 6);
+                case 4:
+                    return true;
+                default:
+                    return false;    
             }
         }
 
@@ -221,20 +269,7 @@ namespace ChatClient
             return plaintext;
         }
 
-        static void SendMessage(NetworkStream stream, byte[] key, byte[] iv)
-        {
-            Console.WriteLine("Введите сообщение: ");
-
-            BinaryWriter writer = new BinaryWriter(stream);
-            
-            while (true)
-            {
-                string message = Console.ReadLine();
-                byte[] data = Encrypt(message, key, iv);
-                message = System.Text.Encoding.Default.GetString(data);
-                writer.Write(message);
-            }
-        }
+        
 
         //static void ReceiveMessage(NetworkStream stream)
         //{
@@ -343,12 +378,24 @@ namespace ChatClient
             return bytes;
         }
 
-        static List<byte[]> GenerateAES_KeyAndIV_Bytes(BigInteger keyInt)
+        static List<byte[]> GenerateAES_KeyAndIV_Bytes(byte[] key, string plaintext)
         {
             SHA256Managed hash = new SHA256Managed();
-            byte[] key = keyInt.ToByteArray();
-            byte[] subKey = new byte[32];
+
+            //byte[] key = keyInt.ToByteArray();
+            byte[] plainttextBytes = Encoding.Default.GetBytes(plaintext);
+            byte[] subKey = new byte[32 + plainttextBytes.Length];
             Buffer.BlockCopy(key, 88+8, subKey, 0, 32);
+            Buffer.BlockCopy(plainttextBytes, 0, subKey, 32, plainttextBytes.Length);
+            using (MemoryStream plaintextBuffer = new MemoryStream(subKey.Length + 40))
+            {
+                plaintextBuffer.Write(subKey, 0, subKey.Length);
+                while (plaintextBuffer.Position % 16 != 0)
+                {
+                    plaintextBuffer.WriteByte(0); // TODO: random padding
+                }
+                subKey = plaintextBuffer.ToArray();
+            }
             //string text = subKey + "простойтекст". + "рандомные символы";
             byte[] msg_key_large = hash.ComputeHash(subKey);
             byte[] msg_key = new byte[16];
@@ -370,10 +417,10 @@ namespace ChatClient
             //aes_key = hash.ComputeHash(aes_key);
             //string aes_key = (sha256_a.Substring(0, 8) + sha256_b.Substring(8, 16) + sha256_a.Substring(24, 8));
             //byte[] aes_iv = new byte[8 + 16 + 8];
-            byte[] aes_iv = new byte[16];
+            byte[] aes_iv = new byte[32];
             Buffer.BlockCopy(sha256_b, 0, aes_iv, 0, 8);
-            //Buffer.BlockCopy(sha256_a, 8, aes_iv, 8, 16);
-            Buffer.BlockCopy(sha256_b, 24, aes_iv, 8, 8);
+            Buffer.BlockCopy(sha256_a, 8, aes_iv, 8, 16);
+            Buffer.BlockCopy(sha256_b, 24, aes_iv, 24, 8);
             //aes_iv = hash.ComputeHash(aes_iv);
             //string aes_iv = sha256_b.Substring(0, 8) + sha256_a.Substring(8, 16) + sha256_b.Substring(24, 8);
             return new List<byte[]> { aes_key, aes_iv };
