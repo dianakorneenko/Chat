@@ -59,15 +59,15 @@ namespace ChatClient
 
                 Buffer.BlockCopy(plaintext, 0, subKey, 0, plaintext.Length);
 
-                //using (MemoryStream plaintextBuffer = new MemoryStream(subKey.Length + 1024))
-                //{
-                //    plaintextBuffer.Write(subKey, 0, subKey.Length);
-                //    while (plaintextBuffer.Position % 16 != 0)
-                //    {
-                //        plaintextBuffer.WriteByte(0); // TODO: random padding
-                //    }
-                //    subKey = plaintextBuffer.ToArray();
-                //}
+                using (MemoryStream plaintextBuffer = new MemoryStream(subKey.Length + 1024))
+                {
+                    plaintextBuffer.Write(subKey, 0, subKey.Length);
+                    while (plaintextBuffer.Position % 16 != 0)
+                    {
+                        plaintextBuffer.WriteByte(0); // TODO: random padding
+                    }
+                    subKey = plaintextBuffer.ToArray();
+                }
 
                 //string text = subKey + "простойтекст". + "рандомные символы";
                 byte[] msg_key_large = hash.ComputeHash(subKey);
@@ -82,6 +82,7 @@ namespace ChatClient
                 Buffer.BlockCopy(EncryptedData, 0, send_message, key_fingerprint.Length + msg_key.Length, EncryptedData.Length);
                 string message_bytes = System.Text.Encoding.Default.GetString(send_message);
                 writer.Write(message_bytes);
+                //writer.Write(send_message);
             }
         }
         static List<byte[]> KDF(byte[] key, byte[] msg_key)
@@ -143,6 +144,7 @@ namespace ChatClient
                     do
                     {
                         string data = reader.ReadString();
+                        //byte[] message_bytes = reader.ReadBytes(1024);
                         byte[] message_bytes = Encoding.Default.GetBytes(data);
                         byte[] key_fingerprint_from_msg = new byte[key_fingerprint.Length];
                         byte[] msg_key_from_msg = new byte[16];
@@ -161,7 +163,7 @@ namespace ChatClient
                        
                         List<byte[]> KeyAndIV = KDF(key, msg_key_from_msg);
                         messageBytes = DecryptIGE(EncryptedData, KeyAndIV[0], KeyAndIV[1]);
-                        messageBytes = Encoding.Default.GetBytes(System.Text.Encoding.Default.GetString(messageBytes));
+                        //messageBytes = Encoding.Default.GetBytes(System.Text.Encoding.Default.GetString(messageBytes));
                         SHA256Managed hash = new SHA256Managed();
                         byte[] msg_key_large = hash.ComputeHash(messageBytes);
                         byte[] msg_key = new byte[16];

@@ -121,7 +121,7 @@ namespace ChatServer
             try
             {
                 Console.WriteLine("начался метод Process");
-
+                //byte[] messageBytes;
                 string message;
                 Console.WriteLine("Бесконечный цикл чата");
                 while (true)
@@ -129,6 +129,7 @@ namespace ChatServer
                     try
                     {
                         message = GetMessageFromChat();
+                        //message = GetMessageFromChat();
                         //message = String.Format("{0}: {1}", userName, message);
                         //Console.WriteLine(message);
                         server.BroadcastMessage(message, this.Id);
@@ -174,6 +175,7 @@ namespace ChatServer
         private string GetMessageFromChat()
         {
             string message;
+            //byte[] messageBytes;
             BinaryReader reader = new BinaryReader(Stream);
             do
             {

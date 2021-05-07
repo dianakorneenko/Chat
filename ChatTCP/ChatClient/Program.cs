@@ -79,7 +79,7 @@ namespace ChatClient
 
                 //byte[] encrypted = Encrypt(data, key, iv);
                 //// Print encrypted string    
-                //Console.WriteLine($"Encrypted data: {System.Text.Encoding.UTF8.GetString(encrypted)}");
+                //Console.WriteLine($"Encrypted data: {System.Text.Encoding.Default.GetString(encrypted)}");
                 //// Decrypt the bytes to a string.    
                 //string decrypted = Decrypt(encrypted, key, iv);
                 //// Print decrypted string. It should be same as raw data    
