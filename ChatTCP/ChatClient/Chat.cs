@@ -9,25 +9,25 @@ using System.IO;
 using System.Collections.Generic;
 using System.Net;
 using TLSharp.Core;
-using TLSharp.Core.MTProto.Crypto;
+//using TLSharp.Core.MTProto.Crypto;
 
 namespace ChatClient
 {
     public class Chat
     {
         private byte[] key;
-        private byte[] iv;
         private NetworkStream stream;
         private TcpClient client;
         string usernameB;
+        byte[] key_fingerprint;
 
-        public Chat(NetworkStream stream, TcpClient client, byte[] key, byte[] iv, string usernameB)
+        public Chat(NetworkStream stream, TcpClient client, byte[] key, string usernameB, byte[] key_fingerprint)
         {
             this.key = key;
-            this.iv = iv;
             this.stream = stream;
             this.client = client;
             this.usernameB = usernameB;
+            this.key_fingerprint = key_fingerprint;
         }
 
         public void SendMessage()
@@ -39,12 +39,97 @@ namespace ChatClient
             while (true)
             {
                 string message = Console.ReadLine();
-                byte[] messageBytes = Encoding.Default.GetBytes(message);
-                byte[] data = EncryptIGE(messageBytes, key, iv);
+                byte[] plaintext = Encoding.Default.GetBytes(message);
+
+                SHA256Managed hash = new SHA256Managed();
+                //int size = 16;
+                //byte[] random_padding;
+                //using (var generator = RandomNumberGenerator.Create())
+                //{
+                //    random_padding = new byte[size];
+                //    generator.GetBytes(random_padding);
+                //}
+
+                //byte[] subKey = new byte[32 + plaintext.Length + random_padding.Length];
+
+                byte[] subKey = new byte[plaintext.Length];
+                //Buffer.BlockCopy(key, 88 + 8, subKey, 0, 32);
+                //Buffer.BlockCopy(plaintext, 0, subKey, 32, plaintext.Length);
+                //Buffer.BlockCopy(random_padding, 0, subKey, 32 + plaintext.Length, random_padding.Length);
+
+                Buffer.BlockCopy(plaintext, 0, subKey, 0, plaintext.Length);
+
+                //using (MemoryStream plaintextBuffer = new MemoryStream(subKey.Length + 1024))
+                //{
+                //    plaintextBuffer.Write(subKey, 0, subKey.Length);
+                //    while (plaintextBuffer.Position % 16 != 0)
+                //    {
+                //        plaintextBuffer.WriteByte(0); // TODO: random padding
+                //    }
+                //    subKey = plaintextBuffer.ToArray();
+                //}
+
+                //string text = subKey + "простойтекст". + "рандомные символы";
+                byte[] msg_key_large = hash.ComputeHash(subKey);
+                byte[] msg_key = new byte[16];
+                Buffer.BlockCopy(msg_key_large, 8, msg_key, 0, 16);
+                List<byte[]> KeyAndIV = KDF(key, msg_key);
+                byte[] EncryptedData = EncryptIGE(subKey, KeyAndIV[0], KeyAndIV[1]);
                 //byte[] data = Encrypt(message, key, iv);
-                message = System.Text.Encoding.Default.GetString(data);
-                writer.Write(message);
+                byte[] send_message = new byte[key_fingerprint.Length + msg_key.Length + EncryptedData.Length];
+                Buffer.BlockCopy(key_fingerprint, 0, send_message, 0, key_fingerprint.Length);
+                Buffer.BlockCopy(msg_key, 0, send_message, key_fingerprint.Length, msg_key.Length);
+                Buffer.BlockCopy(EncryptedData, 0, send_message, key_fingerprint.Length + msg_key.Length, EncryptedData.Length);
+                string message_bytes = System.Text.Encoding.Default.GetString(send_message);
+                writer.Write(message_bytes);
             }
+        }
+        static List<byte[]> KDF(byte[] key, byte[] msg_key)
+        {
+            SHA256Managed hash = new SHA256Managed();
+
+            //byte[] key = keyInt.ToByteArray();
+            //byte[] plainttextBytes = Encoding.Default.GetBytes(plaintext);
+            //byte[] subKey = new byte[32 + plainttextBytes.Length];
+            //Buffer.BlockCopy(key, 88 + 8, subKey, 0, 32);
+            //Buffer.BlockCopy(plainttextBytes, 0, subKey, 32, plainttextBytes.Length);
+            //using (MemoryStream plaintextBuffer = new MemoryStream(subKey.Length + 40))
+            //{
+            //    plaintextBuffer.Write(subKey, 0, subKey.Length);
+            //    while (plaintextBuffer.Position % 16 != 0)
+            //    {
+            //        plaintextBuffer.WriteByte(0); // TODO: random padding
+            //    }
+            //    subKey = plaintextBuffer.ToArray();
+            //}
+            ////string text = subKey + "простойтекст". + "рандомные символы";
+            //byte[] msg_key_large = hash.ComputeHash(subKey);
+            //byte[] msg_key = new byte[16];
+            //Buffer.BlockCopy(msg_key_large, 8, msg_key, 0, 16);
+            byte[] sha256_a = new byte[16 + 36];
+            Buffer.BlockCopy(key, 8, sha256_a, 0, 36);
+            Buffer.BlockCopy(msg_key, 0, sha256_a, 0, 16);
+            sha256_a = hash.ComputeHash(sha256_a);
+            //string sha256_a = getHashSha256(msg_key + key.ToString().Substring(8, 36));
+            byte[] sha256_b = new byte[16 + 36];
+            Buffer.BlockCopy(key, 48, sha256_b, 0, 36);
+            Buffer.BlockCopy(msg_key, 0, sha256_b, 36, 16);
+            sha256_b = hash.ComputeHash(sha256_b);
+            //string sha256_b = getHashSha256(key.ToString().Substring(40 + 8, 36) + msg_key);
+            byte[] aes_key = new byte[8 + 16 + 8];
+            Buffer.BlockCopy(sha256_a, 0, aes_key, 0, 8);
+            Buffer.BlockCopy(sha256_b, 8, aes_key, 8, 16);
+            Buffer.BlockCopy(sha256_a, 24, aes_key, 24, 8);
+            //aes_key = hash.ComputeHash(aes_key);
+            //string aes_key = (sha256_a.Substring(0, 8) + sha256_b.Substring(8, 16) + sha256_a.Substring(24, 8));
+            //byte[] aes_iv = new byte[8 + 16 + 8];
+            byte[] aes_iv = new byte[32];
+            Buffer.BlockCopy(sha256_b, 0, aes_iv, 0, 8);
+            Buffer.BlockCopy(sha256_a, 8, aes_iv, 8, 16);
+            Buffer.BlockCopy(sha256_b, 24, aes_iv, 24, 8);
+            //aes_iv = hash.ComputeHash(aes_iv);
+            //string aes_iv = sha256_b.Substring(0, 8) + sha256_a.Substring(8, 16) + sha256_b.Substring(24, 8);
+            return new List<byte[]> { aes_key, aes_iv };
         }
         public void ReceiveMessage()
         {
@@ -58,9 +143,39 @@ namespace ChatClient
                     do
                     {
                         string data = reader.ReadString();
-                        byte[] dataBytes = Encoding.Default.GetBytes(data);
+                        byte[] message_bytes = Encoding.Default.GetBytes(data);
+                        byte[] key_fingerprint_from_msg = new byte[key_fingerprint.Length];
+                        byte[] msg_key_from_msg = new byte[16];
+                        byte[] EncryptedData = new byte[message_bytes.Length-key_fingerprint_from_msg.Length-msg_key_from_msg.Length];
+                        Buffer.BlockCopy(message_bytes, 0, key_fingerprint_from_msg, 0, key_fingerprint_from_msg.Length);
+                        Buffer.BlockCopy(message_bytes, key_fingerprint_from_msg.Length, msg_key_from_msg, 0, msg_key_from_msg.Length);
+                        Buffer.BlockCopy(message_bytes, key_fingerprint_from_msg.Length+16, EncryptedData, 0, EncryptedData.Length);
+                        BigInteger key1 = new BigInteger(key_fingerprint);
+                        Console.WriteLine("key_fingerprint: {0}", key1.ToString());
+                        BigInteger key2 = new BigInteger(key_fingerprint_from_msg);
+                        Console.WriteLine("key_fingerprint_from_msg: {0}", key2.ToString());
+                        if (key1 != key2)
+                        {
+                            Console.WriteLine("key_fingerprint не совпадает с Вашим.");
+                        }
+                       
+                        List<byte[]> KeyAndIV = KDF(key, msg_key_from_msg);
+                        messageBytes = DecryptIGE(EncryptedData, KeyAndIV[0], KeyAndIV[1]);
+                        messageBytes = Encoding.Default.GetBytes(System.Text.Encoding.Default.GetString(messageBytes));
+                        SHA256Managed hash = new SHA256Managed();
+                        byte[] msg_key_large = hash.ComputeHash(messageBytes);
+                        byte[] msg_key = new byte[16];
+                        Buffer.BlockCopy(msg_key_large, 8, msg_key, 0, 16);
 
-                        messageBytes = DecryptIGE(dataBytes, key, iv);
+                        BigInteger msg_key1 = new BigInteger(msg_key);
+                        Console.WriteLine("msg_key: {0}", msg_key1.ToString());
+                        BigInteger msg_key2 = new BigInteger(msg_key_from_msg);
+                        Console.WriteLine("msg_key_from_msg: {0}", msg_key2.ToString());
+
+                        if (msg_key1 != msg_key2)
+                        {
+                            Console.WriteLine("msg_key_from_msg не совпадает с SHA256(plaintext).");
+                        }
                         message = System.Text.Encoding.Default.GetString(messageBytes);
                         //message = Decrypt(dataBytes, key, iv);
                     }

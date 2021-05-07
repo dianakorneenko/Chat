@@ -129,7 +129,14 @@ namespace ChatClient
                 // вычисляем секретный общий ключ K
                 BigInteger numberK = BigInteger.ModPow(B, random, p);
                 Console.WriteLine("K: {0}", numberK);
+
                 byte[] K = numberK.ToByteArray();
+
+                SHA256Managed hash = new SHA256Managed();
+                byte[] key_hash = hash.ComputeHash(K);
+                byte[] key_fingerprint = new byte[8];
+                Buffer.BlockCopy(key_hash, key_hash.Length - 8, key_fingerprint, 0, key_fingerprint.Length);
+
                 //using (MemoryStream plaintextBuffer = new MemoryStream(K.Length + 40))
                 //{
                 //    plaintextBuffer.Write(K, 0, K.Length);
@@ -143,14 +150,14 @@ namespace ChatClient
                 string usernameB = reader.ReadString();
 
                 // генерируем ключ и вектор для AES256 
-                List<byte[]> keyAndIE = GenerateAES_KeyAndIV_Bytes(K, "plaintext");
+                //List<byte[]> keyAndIE = GenerateAES_KeyAndIV_Bytes(K, "plaintext");
                 
-                byte[] key = keyAndIE[0];
-                byte[] iv = keyAndIE[1];
+                //byte[] key = keyAndIE[0];
+                //byte[] iv = keyAndIE[1];
 
                 // начало чата
                 // создаем объект чата для получения и передачи зашифрованных сообщений
-                Chat chat = new Chat(stream, client, key, iv, usernameB);
+                Chat chat = new Chat(stream, client, K, usernameB, key_fingerprint);
 
                 // запускаем новый поток для получения данных
                 Thread receiveThread = new Thread(new ThreadStart(chat.ReceiveMessage));
